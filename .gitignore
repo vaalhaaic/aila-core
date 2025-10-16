@@ -1,15 +1,15 @@
-# Byte-compiled / optimized / DLL files
+# Bytecode
 __pycache__/
 *.py[cod]
 *$py.class
-
-# Logs
-*.log
 
 # Virtual environments
 .venv/
 venv/
 
-# Nix build artifacts
+# Logs
+*.log
+
+# Nix build outputs
 result
 *.drv

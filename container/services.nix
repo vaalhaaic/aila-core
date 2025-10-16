@@ -1,14 +1,11 @@
-# container/services.nix
 { config, pkgs, ... }:
 
 {
-  # Copy the application source code into the container's filesystem
   environment.etc."aila-app" = {
     source = ../../app;
     target = "/opt/aila";
   };
-  
-  # Main application logic service
+
   systemd.services.aila-mind = {
     description = "Aila's Core Consciousness Loop";
     wantedBy = [ "multi-user.target" ];
@@ -22,21 +19,27 @@
     };
   };
 
-  # Heartbeat timer and service
   systemd.timers.aila-heartbeat = {
     wantedBy = [ "timers.target" ];
-    timerConfig = { OnUnitActiveSec = "5..15s"; RandomizedDelaySec = "5s"; };
+    timerConfig = {
+      OnUnitActiveSec = "5..15s";
+      RandomizedDelaySec = "5s";
+    };
   };
+
   systemd.services.aila-heartbeat = {
     serviceConfig.Type = "oneshot";
     script = ''echo "$(date --iso-8601=seconds) thump-thump" >> /var/log/aila-internal.log'';
   };
-  
-  # Reflection timer and service
+
   systemd.timers.aila-reflection = {
     wantedBy = [ "timers.target" ];
-    timerConfig = { OnCalendar = "daily"; Persistent = true; };
+    timerConfig = {
+      OnCalendar = "daily";
+      Persistent = true;
+    };
   };
+
   systemd.services.aila-reflection = {
     serviceConfig = {
       Type = "oneshot";
