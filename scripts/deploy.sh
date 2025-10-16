@@ -18,6 +18,9 @@ echo "Synchronising host configuration to ${NIXOS_CONFIG_DIR}..."
 rsync -av --delete "${REPO_ROOT}/host/" "${NIXOS_CONFIG_DIR}/"
 rsync -av "${REPO_ROOT}/container/" "${NIXOS_CONFIG_DIR}/container/"
 
+echo "Copying flake definition..."
+install -Dm0644 "${REPO_ROOT}/flake.nix" "${NIXOS_CONFIG_DIR}/flake.nix"
+
 echo "Rebuilding system..."
 nixos-rebuild switch --flake "${NIXOS_CONFIG_DIR}#"
 
