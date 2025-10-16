@@ -1,0 +1,1 @@
+{ description = "Aila NixOS DNA"; inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05"; outputs = { self, nixpkgs, ... }: { nixosConfigurations = { AilaCradle = nixpkgs.lib.nixosSystem { system = "x86_64-linux"; modules = [ ./host/configuration.nix ]; }; }; }; }
