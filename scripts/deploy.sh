@@ -22,6 +22,6 @@ echo "Copying flake definition..."
 install -Dm0644 "${REPO_ROOT}/flake.nix" "${NIXOS_CONFIG_DIR}/flake.nix"
 
 echo "Rebuilding system..."
-nixos-rebuild switch --flake "${NIXOS_CONFIG_DIR}#"
+nixos-rebuild switch --flake "${NIXOS_CONFIG_DIR}#aila-host"
 
 echo "Deployment successful."
