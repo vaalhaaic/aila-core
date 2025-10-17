@@ -4,6 +4,7 @@ let
   # Location on the host where the Piper voice model should be stored.
   # Copy `zh_CN-huayan-medium.onnx` into this directory before enabling the service.
   piperVoicePath = "/var/lib/aila/piper/zh_CN-huayan-medium.onnx";
+  piperConfigPath = "/var/lib/aila/piper/zh_CN-huayan-medium.onnx.json";
 
   piperCommand = pkgs.writeShellScript "piper-tts-server" ''
     set -euo pipefail
@@ -13,11 +14,17 @@ let
       exit 1
     fi
 
+    if [[ ! -f "${piperConfigPath}" ]]; then
+      echo "Piper config missing at ${piperConfigPath}" >&2
+      exit 1
+    fi
+
     exec ${pkgs.piper}/bin/piper \
       --server \
       --host 0.0.0.0 \
       --port 5002 \
-      --model "${piperVoicePath}"
+      --model "${piperVoicePath}" \
+      --config "${piperConfigPath}"
   '';
 
   whisperDaemon = pkgs.writeScript "aila-whisper-daemon.py" ''
