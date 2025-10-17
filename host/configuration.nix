@@ -19,7 +19,6 @@
   boot.enableContainers = true;
 
   containers.aila-core = {
-    enable = true;
     autoStart = true;
     config = import ../container/configuration.nix;
     privateNetwork = true;
