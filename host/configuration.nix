@@ -26,6 +26,7 @@
     home = "/home/mason";
     createHome = true;
     shell = pkgs.zsh;
+    ignoreShellProgramCheck = true;
     extraGroups = [
       "wheel"
       "audio"
