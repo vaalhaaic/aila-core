@@ -15,8 +15,9 @@ if [[ "$EUID" -ne 0 ]]; then
 fi
 
 echo "Synchronising host configuration to ${NIXOS_CONFIG_DIR}..."
-rsync -av --delete "${REPO_ROOT}/host/" "${NIXOS_CONFIG_DIR}/"
-rsync -av "${REPO_ROOT}/container/" "${NIXOS_CONFIG_DIR}/container/"
+rsync -av --delete "${REPO_ROOT}/host/" "${NIXOS_CONFIG_DIR}/host/"
+rsync -av --delete "${REPO_ROOT}/container/" "${NIXOS_CONFIG_DIR}/container/"
+rsync -av --delete "${REPO_ROOT}/app/" "${NIXOS_CONFIG_DIR}/app/"
 
 echo "Copying flake definition..."
 install -Dm0644 "${REPO_ROOT}/flake.nix" "${NIXOS_CONFIG_DIR}/flake.nix"
