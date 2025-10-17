@@ -6,25 +6,127 @@ let
   piperVoicePath = "/var/lib/aila/piper/zh_CN-huayan-medium.onnx";
   piperConfigPath = "/var/lib/aila/piper/zh_CN-huayan-medium.onnx.json";
 
-  piperCommand = pkgs.writeShellScript "piper-tts-server" ''
-    set -euo pipefail
+  piperServer = pkgs.writeScript "aila-piper-placeholder.py" ''
+    #!${pkgs.python312}/bin/python3
+    import argparse
+    import json
+    import logging
+    import signal
+    import sys
+    import time
+    from http import HTTPStatus
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from pathlib import Path
 
-    if [[ ! -f "${piperVoicePath}" ]]; then
-      echo "Piper voice missing at ${piperVoicePath}" >&2
-      exit 1
-    fi
+    STATE = {"requests": 0}
+    STOP_REQUESTED = False
 
-    if [[ ! -f "${piperConfigPath}" ]]; then
-      echo "Piper config missing at ${piperConfigPath}" >&2
-      exit 1
-    fi
 
-    exec ${pkgs.piper}/bin/piper \
-      --server \
-      --host 0.0.0.0 \
-      --port 5002 \
-      --model "${piperVoicePath}" \
-      --config "${piperConfigPath}"
+    def parse_args() -> argparse.Namespace:
+        parser = argparse.ArgumentParser(
+            description="Placeholder Piper HTTP endpoint for development use."
+        )
+        parser.add_argument("--model", required=True, help="Path to ONNX voice model")
+        parser.add_argument("--config", required=True, help="Path to Piper JSON config")
+        parser.add_argument("--host", default="0.0.0.0", help="Bind address")
+        parser.add_argument("--port", type=int, default=5002, help="Listen port")
+        return parser.parse_args()
+
+
+    class PlaceholderHandler(BaseHTTPRequestHandler):
+        server_version = "AilaPiper/0.1"
+        sys_version = ""
+
+        def _write_json(self, status: HTTPStatus, payload: dict) -> None:
+            body = json.dumps(payload).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def do_GET(self) -> None:  # noqa: N802
+            if self.path == "/health":
+                self._write_json(
+                    HTTPStatus.OK,
+                    {
+                        "status": "ok",
+                        "requests": STATE["requests"],
+                        "note": "placeholder implementation – no audio emitted",
+                    },
+                )
+                return
+            self.send_error(HTTPStatus.NOT_FOUND, "Unknown path")
+
+        def do_POST(self) -> None:  # noqa: N802
+            if self.path != "/speak":
+                self.send_error(HTTPStatus.NOT_FOUND, "Unknown path")
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                self._write_json(HTTPStatus.BAD_REQUEST, {"error": "invalid length"})
+                return
+            raw = self.rfile.read(max(length, 0))
+            try:
+                payload = json.loads(raw.decode("utf-8"))
+            except json.JSONDecodeError as exc:
+                self._write_json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
+                return
+
+            text = str(payload.get("text", "")).strip()
+            voice = str(payload.get("voice", "")).strip() or "default"
+            if not text:
+                self._write_json(HTTPStatus.BAD_REQUEST, {"error": "text is required"})
+                return
+
+            STATE["requests"] += 1
+            logging.info("Piper placeholder received voice=%s length=%d", voice, len(text))
+            self._write_json(
+                HTTPStatus.OK,
+                {"status": "accepted", "voice": voice, "approximate_duration": len(text) / 12.0},
+            )
+
+        def log_message(self, format: str, *args) -> None:  # noqa: A003
+            logging.debug("HTTP %s", format % args)
+
+
+    def main() -> int:
+        args = parse_args()
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s %(levelname)s %(message)s",
+        )
+
+        for path in (args.model, args.config):
+            if not Path(path).is_file():
+                logging.error("Required Piper asset missing: %s", path)
+                return 1
+
+        def _stop(_signo, _frame):
+            global STOP_REQUESTED  # noqa: PLW0603
+            STOP_REQUESTED = True
+
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            signal.signal(sig, _stop)
+
+        server = ThreadingHTTPServer((args.host, args.port), PlaceholderHandler)
+        logging.warning(
+            "Starting placeholder Piper server on %s:%s (no audio playback)",
+            args.host,
+            args.port,
+        )
+        try:
+            while not STOP_REQUESTED:
+                server.handle_request()
+        finally:
+            server.server_close()
+            logging.info("Placeholder Piper server stopped.")
+        return 0
+
+
+    if __name__ == "__main__":
+        sys.exit(main())
   '';
 
   whisperDaemon = pkgs.writeScript "aila-whisper-daemon.py" ''
@@ -107,8 +209,9 @@ in
     wants = [ "network-online.target" ];
     serviceConfig = {
       DynamicUser = true;
-      ExecStart = piperCommand;
+      ExecStart = "${piperServer} --model ${piperVoicePath} --config ${piperConfigPath} --host 0.0.0.0 --port 5002";
       Restart = "on-failure";
+      RestartSec = 2;
     };
   };
 
