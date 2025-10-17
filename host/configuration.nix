@@ -10,10 +10,20 @@
   boot.loader.efi.canTouchEfiVariables = true;
 
   nixpkgs.config.allowUnfreePredicate = pkg:
-    builtins.elem (lib.getName pkg) [
-      "cuda-merged"
-      "cuda-merged-12.2"
-    ];
+    let
+      name = lib.getName pkg;
+      prefixes = [
+        "cuda-"
+        "cuda_"
+        "nvidia-"
+      ];
+      explicit = [
+        "cuda-merged"
+        "cuda-merged-12.2"
+      ];
+    in
+      builtins.elem name explicit
+      || lib.any (prefix: lib.strings.hasPrefix prefix name) prefixes;
 
   # Provide essential CLI tools on the host.
   environment.systemPackages = with pkgs; [
