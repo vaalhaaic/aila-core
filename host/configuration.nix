@@ -6,9 +6,19 @@
     ./services.nix
   ];
 
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-  boot.loader.efi.efiSysMountPoint = "/boot/efi";
+  boot.loader.systemd-boot.enable = false;
+  boot.loader.efi = {
+    canTouchEfiVariables = true;
+    efiSysMountPoint = "/boot/efi";
+  };
+  boot.loader.grub = {
+    enable = true;
+    version = 2;
+    device = "nodev";
+    efiSupport = true;
+    efiInstallAsRemovable = true;
+    efiSysMountPoint = "/boot/efi";
+  };
 
   nixpkgs.config.allowUnfreePredicate = pkg:
     let
