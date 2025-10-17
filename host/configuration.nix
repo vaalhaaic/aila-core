@@ -16,7 +16,7 @@
     version = 2;
     device = "nodev";
     efiSupport = true;
-    efiInstallAsRemovable = true;
+    efiInstallAsRemovable = false;
   };
 
   nixpkgs.config.allowUnfreePredicate = pkg:
