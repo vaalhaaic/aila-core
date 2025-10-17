@@ -2,7 +2,7 @@
 
 {
   environment.etc."aila-app" = {
-    source = ../../app;
+    source = ../app;
     target = "/opt/aila";
   };
 
@@ -10,6 +10,7 @@
     description = "Aila's Core Consciousness Loop";
     wantedBy = [ "multi-user.target" ];
     after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
     serviceConfig = {
       Type = "simple";
       ExecStart = "${pkgs.python312}/bin/python /opt/aila/main_loop.py";
