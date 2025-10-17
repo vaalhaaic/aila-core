@@ -16,6 +16,8 @@
     allowedTCPPorts = [ 5001 5002 ];
   };
 
+  boot.enableContainers = true;
+
   containers.aila-core = {
     enable = true;
     autoStart = true;
