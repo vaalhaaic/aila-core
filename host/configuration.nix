@@ -17,7 +17,6 @@
     device = "nodev";
     efiSupport = true;
     efiInstallAsRemovable = true;
-    efiSysMountPoint = "/boot/efi";
   };
 
   nixpkgs.config.allowUnfreePredicate = pkg:
