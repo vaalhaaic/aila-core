@@ -4,8 +4,7 @@
   services.ollama = {
     enable = true;
     acceleration = "cuda";
-    listenAddress = "0.0.0.0";
-    port = 5001;
+    listenAddress = "0.0.0.0:5001";
   };
 
   services.piper-tts = {

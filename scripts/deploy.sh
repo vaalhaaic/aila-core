@@ -15,6 +15,7 @@ if [[ "$EUID" -ne 0 ]]; then
 fi
 
 echo "Synchronising host configuration to ${NIXOS_CONFIG_DIR}..."
+install -d "${NIXOS_CONFIG_DIR}/host" "${NIXOS_CONFIG_DIR}/container" "${NIXOS_CONFIG_DIR}/app"
 rsync -av --delete "${REPO_ROOT}/host/" "${NIXOS_CONFIG_DIR}/host/"
 rsync -av --delete "${REPO_ROOT}/container/" "${NIXOS_CONFIG_DIR}/container/"
 rsync -av --delete "${REPO_ROOT}/app/" "${NIXOS_CONFIG_DIR}/app/"
