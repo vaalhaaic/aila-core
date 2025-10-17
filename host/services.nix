@@ -103,8 +103,10 @@ in
   systemd.services.piper-tts = {
     description = "Piper Text-to-Speech Service";
     wantedBy = [ "multi-user.target" ];
-    after = [ "network.target" ];
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
     serviceConfig = {
+      DynamicUser = true;
       ExecStart = piperCommand;
       Restart = "on-failure";
     };
