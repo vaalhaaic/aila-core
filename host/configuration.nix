@@ -13,10 +13,19 @@
   };
   boot.loader.grub = {
     enable = true;
-    version = 2;
     device = "nodev";
     efiSupport = true;
     efiInstallAsRemovable = false;
+  };
+
+  users.mutableUsers = true;
+
+  i18n = {
+    defaultLocale = "zh_CN.UTF-8";
+    supportedLocales = [
+      "en_US.UTF-8/UTF-8"
+      "zh_CN.UTF-8/UTF-8"
+    ];
   };
 
   nixpkgs.config.allowUnfreePredicate = pkg:
