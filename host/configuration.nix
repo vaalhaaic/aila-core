@@ -18,7 +18,25 @@
     efiInstallAsRemovable = false;
   };
 
-  users.mutableUsers = true;
+  users.mutableUsers = false;
+  users.users.mason = {
+    isNormalUser = true;
+    description = "Primary operator account";
+    uid = 1000;
+    home = "/home/mason";
+    createHome = true;
+    shell = pkgs.zsh;
+    extraGroups = [
+      "wheel"
+      "audio"
+      "video"
+      "networkmanager"
+      "docker"
+      "input"
+    ];
+    # Placeholder password hash for "changeme"; replace with your own via mkpasswd.
+    initialHashedPassword = "$6$QxGdEwY5qz$haRIdE07t8I5xX4JHTnHwfzZrx6iN2uVJ69vICv1dnL4/C1YgF8a9T2qQjgVn6nye4MNv7YVd6YK2NooMBmmh1";
+  };
 
   i18n = {
     defaultLocale = "zh_CN.UTF-8";
