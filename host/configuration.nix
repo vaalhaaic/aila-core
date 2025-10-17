@@ -6,6 +6,9 @@
     ./services.nix
   ];
 
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+
   # Provide essential CLI tools on the host.
   environment.systemPackages = with pkgs; [
     git
