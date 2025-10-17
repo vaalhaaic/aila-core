@@ -16,6 +16,8 @@
         "cuda-"
         "cuda_"
         "nvidia-"
+        "libcu"
+        "libnv"
       ];
       explicit = [
         "cuda-merged"
