@@ -1,0 +1,10 @@
+model: "medium"
+model_dir: "/opt/aila/whisper/models"
+device: "cuda"
+precision: "fp16"
+beam_size: 5
+temperature: 0.0
+sample_rate: 16000
+max_batch_size: 4
+listen_host: "0.0.0.0"
+listen_port: 9081

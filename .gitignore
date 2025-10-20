@@ -1,15 +1,33 @@
-# Bytecode
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Virtual environments
-.venv/
-venv/
-
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+# Environment variables
+.env
+*.env
+!example.env
+# Models (large files)
+aila/models/
+*.pth
+*.onnx
+*.pb
+*.h5
 # Logs
+logs/
 *.log
-
-# Nix build outputs
-result
-*.drv
+# Temporary files
+tmp/
+temp/
+*.tmp
+# Node.js (if applicable)
+node_modules/
+package-lock.json
+# Database
+*.db
+*.sqlite
+*.sqlite3

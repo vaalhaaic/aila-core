@@ -1,0 +1,6 @@
+endpoints:
+  whisper: "http://localhost:9081/health"
+  piper: "http://localhost:9082/health"
+  ollama: "http://localhost:11434/api/tags"
+metrics_port: 9091
+scrape_interval: 15

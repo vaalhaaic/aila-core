@@ -1,0 +1,142 @@
+mappings:
+  # System layer
+  - name: system-env
+    src: system/etc/aila/
+    dst: /etc/aila/
+    sudo: true
+    description: "Environment fragments and shared configuration"
+
+  - name: system-opt
+    src: system/opt/aila/
+    dst: /opt/aila/
+    sudo: true
+    description: "Shared runtime directories and data roots"
+
+  - name: system-logs
+    src: system/var/log/aila/
+    dst: /var/log/aila/
+    sudo: true
+    description: "Log directories with correct ownership"
+
+  # Core cognition
+  - name: aila-core
+    src: aila/
+    dst: /opt/aila/core/
+    sudo: true
+    description: "Python package with perception, planning, and interfaces"
+
+  # Shared scripts
+  - name: scripts-bin
+    src: scripts/
+    dst: /usr/local/bin/
+    sudo: true
+    description: "Administration scripts for install, deploy, and runtime"
+
+  # Services: Ollama
+  - name: ollama-systemd
+    src: services/ollama/systemd/
+    dst: /etc/systemd/system/
+    sudo: true
+    description: "Ollama GPU service unit"
+
+  - name: ollama-config
+    src: services/ollama/config/
+    dst: /etc/ollama/
+    sudo: true
+    description: "Ollama server configuration"
+
+  - name: ollama-main
+    src: services/ollama/main/
+    dst: /opt/aila/ollama/
+    sudo: true
+    description: "Ollama orchestration scripts"
+
+  - name: ollama-scripts
+    src: services/ollama/scripts/
+    dst: /opt/aila/ollama/bin/
+    sudo: true
+    description: "Helper scripts for model management"
+
+  # Services: Whisper
+  - name: whisper-systemd
+    src: services/whisper/systemd/
+    dst: /etc/systemd/system/
+    sudo: true
+    description: "Whisper ASR service unit"
+
+  - name: whisper-config
+    src: services/whisper/config/
+    dst: /etc/aila-whisper/
+    sudo: true
+    description: "Whisper inference settings"
+
+  - name: whisper-main
+    src: services/whisper/main/
+    dst: /opt/aila/whisper/
+    sudo: true
+    description: "Whisper runtime scripts"
+
+  - name: whisper-scripts
+    src: services/whisper/scripts/
+    dst: /opt/aila/whisper/bin/
+    sudo: true
+    description: "Whisper utility tools"
+
+  # Services: Piper
+  - name: piper-systemd
+    src: services/piper/systemd/
+    dst: /etc/systemd/system/
+    sudo: true
+    description: "Piper TTS service unit"
+
+  - name: piper-config
+    src: services/piper/config/
+    dst: /etc/aila-piper/
+    sudo: true
+    description: "Piper voice profiles and settings"
+
+  - name: piper-main
+    src: services/piper/main/
+    dst: /opt/aila/piper/
+    sudo: true
+    description: "Piper application runtime"
+
+  - name: piper-scripts
+    src: services/piper/scripts/
+    dst: /opt/aila/piper/bin/
+    sudo: true
+    description: "Piper model and voice installers"
+
+  # Services: Monitor
+  - name: monitor-systemd
+    src: services/monitor/systemd/
+    dst: /etc/systemd/system/
+    sudo: true
+    description: "Aila monitor service unit"
+
+  - name: monitor-config
+    src: services/monitor/config/
+    dst: /etc/aila-monitor/
+    sudo: true
+    description: "Monitor configuration and dashboards"
+
+  - name: monitor-main
+    src: services/monitor/main/
+    dst: /opt/aila/monitor/
+    sudo: true
+    description: "Monitor data collectors"
+
+  - name: monitor-scripts
+    src: services/monitor/scripts/
+    dst: /opt/aila/monitor/bin/
+    sudo: true
+    description: "Monitor helper scripts"
+
+exclude_file: deploy/rsync-exclude.txt
+
+sync_policy:
+  mode: mirror
+  dry_run: true
+  backup: true
+  preserve_permissions: true
+  show_progress: true

@@ -1,0 +1,18 @@
+[Unit]
+Description=Aila Whisper Speech Recognition
+After=network.target sound.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=aila
+Group=aila
+EnvironmentFile=/etc/aila/env.d/whisper.conf
+WorkingDirectory=/opt/aila/whisper
+ExecStart=/usr/bin/python3 -m main.server --config /etc/aila-whisper/config.yaml
+Restart=on-failure
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

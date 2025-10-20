@@ -1,0 +1,8 @@
+{
+  "voice": "en_US-amy-medium",
+  "speaker": 0,
+  "sample_rate": 22050,
+  "noise_scale": 0.667,
+  "length_scale": 1.0,
+  "noise_w": 0.8
+}
