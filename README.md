@@ -36,10 +36,9 @@ aila-core/
 │   ├── install_dependencies.sh
 │   ├── deploy_to_host.sh
 │   └── run_aila.sh
-├── services/      # 服务定义（Whisper、Ollama、Piper、Monitor 等）
+├── services/      # 服务定义（Whisper、Coqui、Monitor 等）
 │   ├── whisper/       # 语音识别服务
-│   ├── ollama/        # LLM 推理服务
-│   ├── piper/         # 语音合成服务
+│   ├── coqui/         # 语音合成服务
 │   └── monitor/       # 监控服务
 └── system/        # Ubuntu 主机级配置片段
     └── etc/aila/env.d/  # 环境变量配置
@@ -116,9 +115,8 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 # 安装 Python 依赖（假设有 requirements.txt）
 pip install -r requirements.txt
 
-# 配置环境变量
-cp system/etc/aila/env.d/example.env system/etc/aila/env.d/.env
-# 编辑 .env 文件，填入 API Keys 等敏感信息
+# 检查环境片段（OPENROUTER_API_KEY 仍为占位符，部署后再填写）
+cat system/etc/aila/env.d/openrouter.conf
 ```
 
 ## 📤 Git 工作流程
@@ -171,41 +169,62 @@ git push -u origin feature/voice-recognition
 ### 1. 初始化环境
 
 ```bash
-# 克隆仓库后，安装系统与 Python 依赖
-scripts/install_dependencies.sh
+chmod +x scripts/install_dependencies.sh
+sudo ./scripts/install_dependencies.sh
 
-# 准备模型文件（不纳入版本控制）
-mkdir -p aila/models/
-# 下载并放置所需的语音、视觉、LLM 模型
+python3 -m venv venv
+source venv/bin/activate            # Windows: venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-### 2. 配置运行时参数
+### 2. 配置远程 LLM（OpenRouter）
+
+1. 机密信息单独管理：部署完成后，在目标服务器编辑 `/etc/aila/env.d/openrouter.conf`，将仓库中的占位符 `OPENROUTER_API_KEY=changeme` 修改为真实密钥。该文件不应提交到版本库。
+2. 本地调试时，可临时导出密钥：
+
+   ```powershell
+   # Windows PowerShell
+   setx OPENROUTER_API_KEY "你的API密钥"
+   ```
+
+   ```bash
+   # Linux / macOS
+   export OPENROUTER_API_KEY="你的API密钥"
+   ```
+
+3. 可选：按照 OpenRouter 推荐添加归因信息或切换模型：
+
+   ```bash
+   export OPENROUTER_REFERER="https://your-app.example"
+   export OPENROUTER_APP_TITLE="Aila-Client"
+   export OPENROUTER_MODEL="tngtech/deepseek-r1t2-chimera:free"
+   export OPENROUTER_BASE_URL="https://openrouter.ai/api/v1"
+   ```
+
+### 3. 部署语音服务（Whisper.cpp + Coqui TTS）
 
 ```bash
-# 编辑环境变量配置
-vim system/etc/aila/env.d/.env
-
-# 示例配置内容：
-# OPENAI_API_KEY=sk-xxxx
-# DATABASE_URL=postgresql://user:pass@localhost/aila
-# REDIS_URL=redis://localhost:6379
+sudo bash scripts/deploy_tts_stt.sh
 ```
 
-### 3. 本地开发与测试
+- Whisper.cpp 默认拉取 `small` 模型，并启用 CUDA（需已安装 NVIDIA 驱动与 CUDA 12.x）。
+- Coqui TTS 会在 `/opt/aila/coqui` 创建虚拟环境并预热 `tts_models/zh-CN/baker/tacotron2-DDC-GST` 中文女声，可通过 `COQUI_MODEL_NAME` 等环境变量覆盖。
+- 脚本会自动生成 `whisper.service` 与 `coqui.service` systemd 单元，并设置为开机自启。
+
+### 4. 本地开发与测试
 
 ```bash
-# 启动核心服务
-cd aila/
-python -m aila.main
+# 确保 OPENROUTER_API_KEY 已在当前会话可见
+source venv/bin/activate
 
-# 或使用便捷脚本
-bash scripts/run_aila.sh
+# 运行编排器（文本输入示例）
+python -m aila.runtime.orchestrator --text "你好，Aila！"
 
 # 运行测试
 pytest tests/
 ```
 
-### 4. 部署前检查
+### 5. 部署前检查
 
 ```bash
 # 检查部署映射配置
@@ -215,7 +234,7 @@ cat deploy/mapping.yaml
 python deploy/deploy.py --dry-run
 ```
 
-### 5. 部署到 Ubuntu 目标主机
+### 6. 部署到 Ubuntu 目标主机
 
 ```bash
 # 部署到指定主机
@@ -223,11 +242,12 @@ bash scripts/deploy_to_host.sh production-server
 
 # 在目标主机检查服务状态
 ssh user@production-server
-sudo systemctl status aila-core
-sudo journalctl -u aila-core -f  # 查看实时日志
+sudo systemctl status whisper.service coqui.service
+sudo journalctl -u whisper.service -f
+sudo journalctl -u coqui.service -f
 ```
 
-### 6. 持续集成与回滚
+### 7. 持续集成与回滚
 
 ```bash
 # 打标签发布版本
@@ -287,4 +307,3 @@ bash scripts/deploy_to_host.sh production-server
 
 **⚡ Aila Core - Empowering Embodied Intelligence**
 ```
-

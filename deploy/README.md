@@ -13,7 +13,7 @@ The deploy controller keeps a single source of truth for synchronizing this repo
 ```
 python deploy.py --host robot01
 python deploy.py --host robot01 --apply
-python deploy.py --host robot01 --apply --filter services=whisper,piper
+python deploy.py --host robot01 --apply --filter services=whisper,coqui
 ```
 
 `deploy.py` reads SSH connection details from the environment:
@@ -35,4 +35,3 @@ Add or modify entries in `mapping.yaml`. Each mapping contains:
 - `description` (human readable note)
 
 `deploy.py` can filter by `name` or group using the `--filter` option.
-

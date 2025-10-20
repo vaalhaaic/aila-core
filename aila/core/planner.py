@@ -1,4 +1,4 @@
-"""Planner bridging Ollama completions with business rules."""
+"""Planner bridging OpenRouter completions with business rules."""
 
 from __future__ import annotations
 

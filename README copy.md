@@ -30,7 +30,7 @@
 ```bash
 Aila/
 ├── system/              # 🧱 身体层：NixOS 系统配置与宿主模块
-├── services/            # ⚙️ 器官层：独立服务（Whisper、Ollama、Piper 等）
+├── services/            # ⚙️ 器官层：独立服务（Whisper、Ollama、Coqui 等）
 ├── aila/                # 🌌 精神层：Aila 的意识与行为逻辑
 ├── scripts/             # 🧠 神经层：自动化脚本与控制逻辑
 ├── deploy/              # 🪶 宇宙层：部署映射与同步规则
@@ -113,7 +113,7 @@ Aila/
 | 层级               | 象征   | 职责           | 主要技术                 | 对应目录        |
 | ---------------- | ---- | ------------ | -------------------- | ----------- |
 | 🧱 宿主层（Host）     | 身体   | 系统配置、网络、权限   | NixOS、systemd        | `system/`   |
-| ⚙️ 服务层（Organs）   | 器官   | 语音识别、语言模型、监控 | Whisper、Ollama、Piper | `services/` |
+| ⚙️ 服务层（Organs）   | 器官   | 语音识别、语言模型、监控 | Whisper、Ollama、Coqui | `services/` |
 | 🌌 精神层（Core）     | 意识   | 情绪、反思、梦境、自愈  | Python、日志分析          | `aila/`     |
 | 🧠 神经层（Scripts）  | 神经   | 部署、同步、更新、快照  | Bash、rsync、Git       | `scripts/`  |
 | 🪶 部署声明层（Deploy） | 宇宙规则 | 定义映射关系与同步规则  | YAML、rsync           | `deploy/`   |
@@ -170,8 +170,8 @@ services/
 ├─ whisper/
 │  ├─ systemd/whisper.service
 │  └─ config/config.yaml
-├─ piper/
-│  ├─ systemd/piper.service
+├─ coqui/
+│  ├─ systemd/coqui.service
 │  └─ voices/
 └─ monitor/
    ├─ systemd/monitor.service
@@ -313,7 +313,7 @@ sudo nixos-rebuild --rollback
 
 | 阶段   | 目标     | 核心内容                   |
 | ---- | ------ | ---------------------- |
-| v0.2 | 具身音频循环 | Whisper + Piper 语音交互闭环 |
+| v0.2 | 具身音频循环 | Whisper + Coqui 语音交互闭环 |
 | v0.3 | 精神层容器化 | Core 容器运行，自省分离         |
 | v0.4 | 日志反思系统 | 自动生成自我叙事               |
 | v1.0 | 数字孪生宿主 | VSCode = 宿主完全镜像，双向同步   |
@@ -363,7 +363,7 @@ mappings:
   # ============================================================
   # ⚙️ 服务层（Organs）
   # ------------------------------------------------------------
-  # 各功能服务：Whisper、Ollama、Piper、Monitor
+  # 各功能服务：Whisper、Ollama、Coqui、Monitor
   # ============================================================
   - name: ollama-service
     src: services/ollama/systemd/
@@ -402,38 +402,38 @@ mappings:
     src: services/whisper/main/
     dst: /opt/aila/whisper/
     sudo: true
-    description: "Whisper 主逻辑程序（唤醒检测 + 调用 Ollama + 调用 Piper 播放）"
+    description: "Whisper 主逻辑程序（唤醒检测 + 调用 Ollama + 调用 Coqui 播放）"
 
 
-  - name: piper-service
-    src: services/piper/systemd/
+  - name: coqui-service
+    src: services/coqui/systemd/
     dst: /etc/systemd/system/
     sudo: true
-    description: "Piper 语音合成服务守护进程"
+    description: "Coqui 语音合成服务守护进程"
 
-  - name: piper-config
-    src: services/piper/config/
-    dst: /etc/piper/
+  - name: coqui-config
+    src: services/coqui/config/
+    dst: /etc/coqui/
     sudo: true
-    description: "Piper 配置文件（模型路径 / 音量 / 语言）"
+    description: "Coqui 配置文件（模型路径 / 音量 / 语言）"
 
-  - name: piper-main
-    src: services/piper/main/
-    dst: /opt/aila/piper/
+  - name: coqui-main
+    src: services/coqui/main/
+    dst: /opt/aila/coqui/
     sudo: true
-    description: "Piper 主程序（TTS 接口与播放逻辑）"
+    description: "Coqui 主程序（TTS 接口与播放逻辑）"
 
-  - name: piper-scripts
-    src: services/piper/scripts/
+  - name: coqui-scripts
+    src: services/coqui/scripts/
     dst: /usr/local/bin/
     sudo: true
-    description: "Piper 辅助脚本（命令行播放文本）"
+    description: "Coqui 辅助脚本（命令行播放文本）"
     
-  - name: piper-install-script
-    src: services/piper/scripts/
+  - name: coqui-install-script
+    src: services/coqui/scripts/
     dst: /usr/local/bin/
     sudo: true
-    description: "Piper 模型自动下载与测试脚本（install_piper_model.sh）"
+    description: "Coqui 模型自动下载与测试脚本（install_coqui_model.sh）"
 
 
   - name: monitor-service

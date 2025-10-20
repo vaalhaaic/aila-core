@@ -23,7 +23,7 @@ This document adapts the layered structure from the NixOS blueprint to an Ubuntu
 ## Runtime Components
 
 1. `aila.runtime.Orchestrator` manages process lifecycle and plugs into service APIs.
-2. `aila.core.MindPipeline` fuses Whisper transcripts, Ollama completions, and Piper synthesis.
+2. `aila.core.MindPipeline` fuses Whisper transcripts, OpenRouter completions, and Coqui synthesis.
 3. `services/*/systemd/*.service` run under dedicated system users with GPU access.
 4. `scripts/run_aila.sh` bootstraps the runtime inside a Python virtual environment.
 5. `deploy/deploy.py` ensures repeatable synchronization to remote hosts via SSH/rsync.
@@ -31,9 +31,9 @@ This document adapts the layered structure from the NixOS blueprint to an Ubuntu
 ## Data Flow Summary
 
 ```
-Audio -> services/whisper -> aila.core.perception -> aila.core.mind -> services/piper
+Audio -> services/whisper -> aila.core.perception -> aila.core.mind -> services/coqui
                           \-> services/monitor -> Prometheus scrape endpoint
-Text  <- services/ollama <- aila.core.planner  <- aila.interfaces.speech
+Text  <- OpenRouter API <- aila.core.planner  <- aila.interfaces.speech
 ```
 
 ## Multi-Host Considerations
@@ -41,4 +41,3 @@ Text  <- services/ollama <- aila.core.planner  <- aila.interfaces.speech
 - Edge nodes (Jetson or x86) can run individual services, each using the same structure.
 - `mapping.yaml` supports per-target overrides through environment variables (see deploy README).
 - Use `scripts/deploy_to_host.sh --tag edge` to apply specialized mappings (future work).
-

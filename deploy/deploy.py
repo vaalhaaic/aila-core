@@ -5,7 +5,7 @@ Rsync-based deploy controller for the Aila Ubuntu stack.
 Examples:
     python deploy.py --host robot01
     python deploy.py --host robot01 --apply
-    python deploy.py --host robot01 --apply --filter services=whisper,piper
+    python deploy.py --host robot01 --apply --filter services=whisper,coqui
 """
 
 from __future__ import annotations
@@ -173,7 +173,7 @@ def main() -> int:
         "--filter",
         action="append",
         default=[],
-        help="Filter mappings by name token (e.g. services=whisper,piper)",
+        help="Filter mappings by name token (e.g. services=whisper,coqui)",
     )
     parser.add_argument(
         "--mapping",

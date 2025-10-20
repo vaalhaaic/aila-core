@@ -16,7 +16,7 @@
 4. Enable services on the target:
    ```bash
    sudo systemctl daemon-reload
-   sudo systemctl enable --now ollama.service whisper.service piper.service aila-monitor.service
+   sudo systemctl enable --now whisper.service coqui.service aila-monitor.service
    ```
 5. Inspect logs with `journalctl -u <service> -f`.
 
@@ -40,4 +40,3 @@
 - Mount `/opt/aila` on fast NVMe storage and isolate `/var/log/aila`.
 - Configure a firewall (`ufw` or `nftables`) and open only service ports.
 - Integrate Prometheus scrape configuration for `monitor` endpoints.
-

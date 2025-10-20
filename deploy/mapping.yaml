@@ -32,31 +32,6 @@ mappings:
     sudo: true
     description: "Administration scripts for install, deploy, and runtime"
 
-  # Services: Ollama
-  - name: ollama-systemd
-    src: services/ollama/systemd/
-    dst: /etc/systemd/system/
-    sudo: true
-    description: "Ollama GPU service unit"
-
-  - name: ollama-config
-    src: services/ollama/config/
-    dst: /etc/ollama/
-    sudo: true
-    description: "Ollama server configuration"
-
-  - name: ollama-main
-    src: services/ollama/main/
-    dst: /opt/aila/ollama/
-    sudo: true
-    description: "Ollama orchestration scripts"
-
-  - name: ollama-scripts
-    src: services/ollama/scripts/
-    dst: /opt/aila/ollama/bin/
-    sudo: true
-    description: "Helper scripts for model management"
-
   # Services: Whisper
   - name: whisper-systemd
     src: services/whisper/systemd/
@@ -82,30 +57,24 @@ mappings:
     sudo: true
     description: "Whisper utility tools"
 
-  # Services: Piper
-  - name: piper-systemd
-    src: services/piper/systemd/
+  # Services: Coqui TTS
+  - name: coqui-systemd
+    src: services/coqui/systemd/
     dst: /etc/systemd/system/
     sudo: true
-    description: "Piper TTS service unit"
+    description: "Coqui TTS service unit"
 
-  - name: piper-config
-    src: services/piper/config/
-    dst: /etc/aila-piper/
+  - name: coqui-config
+    src: services/coqui/config/
+    dst: /etc/aila-coqui/
     sudo: true
-    description: "Piper voice profiles and settings"
+    description: "Coqui TTS configuration"
 
-  - name: piper-main
-    src: services/piper/main/
-    dst: /opt/aila/piper/
+  - name: coqui-main
+    src: services/coqui/main/
+    dst: /opt/aila/coqui/
     sudo: true
-    description: "Piper application runtime"
-
-  - name: piper-scripts
-    src: services/piper/scripts/
-    dst: /opt/aila/piper/bin/
-    sudo: true
-    description: "Piper model and voice installers"
+    description: "Coqui TTS runtime scripts"
 
   # Services: Monitor
   - name: monitor-systemd
