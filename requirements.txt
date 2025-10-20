@@ -1,1 +1,5 @@
-pyyaml\nrequests\nfastapi\nuvicorn\npydantic\n
+pyyaml
+requests
+fastapi
+uvicorn
+pydantic
