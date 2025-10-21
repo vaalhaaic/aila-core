@@ -6,13 +6,13 @@ from dataclasses import dataclass
 from typing import Protocol
 
 
-class WhisperClient(Protocol):
+class SpeechRecognitionClient(Protocol):
     def transcribe(self, audio_path: str) -> str: ...
 
 
 @dataclass
 class PerceptionRouter:
-    whisper: WhisperClient
+    recognizer: SpeechRecognitionClient
 
     def transcribe(self, audio_path: str) -> str:
-        return self.whisper.transcribe(audio_path)
+        return self.recognizer.transcribe(audio_path)

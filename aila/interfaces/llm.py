@@ -1,10 +1,16 @@
-"""LLM client abstraction backed by OpenRouter."""
+"""LLM client abstraction backed by iFLYTEK Spark."""
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
 import os
+import time
 from dataclasses import dataclass, field
+from email.utils import formatdate
 from typing import Dict, List, Optional
+from urllib.parse import urlparse
 
 import requests
 
@@ -23,49 +29,79 @@ def _build_messages(system_prompt: str | None, prompt: str) -> List[Dict[str, st
 
 @dataclass
 class LLMClient:
-    """Thin wrapper around the OpenRouter Chat Completions endpoint."""
+    """Thin wrapper around the iFLYTEK Spark chat completions endpoint."""
 
-    base_url: str = field(default_factory=lambda: os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"))
-    model: str = field(default_factory=lambda: os.getenv("OPENROUTER_MODEL", "tngtech/deepseek-r1t2-chimera:free"))
+    app_id: str = field(default_factory=lambda: os.getenv("XUNFEI_APP_ID", ""))
     api_key: Optional[str] = None
-    referer: Optional[str] = field(default_factory=lambda: os.getenv("OPENROUTER_REFERER"))
-    app_title: Optional[str] = field(default_factory=lambda: os.getenv("OPENROUTER_APP_TITLE"))
-    timeout: int = field(default_factory=lambda: int(os.getenv("OPENROUTER_TIMEOUT", "60")))
+    api_secret: Optional[str] = None
+    api_url: str = field(
+        default_factory=lambda: os.getenv("XUNFEI_API_URL", "https://spark-api-open.xf-yun.com/v2/chat/completions")
+    )
+    temperature: float = field(default_factory=lambda: float(os.getenv("XUNFEI_TEMPERATURE", "0.7")))
+    max_tokens: int = field(default_factory=lambda: int(os.getenv("XUNFEI_MAX_TOKENS", "2048")))
+    timeout: int = field(default_factory=lambda: int(os.getenv("XUNFEI_TIMEOUT", "60")))
 
     def __post_init__(self) -> None:
         if not self.api_key:
-            self.api_key = os.getenv("OPENROUTER_API_KEY")
-        if not self.api_key:
-            raise LLMError("OPENROUTER_API_KEY is not set. Export it before starting the runtime.")
+            self.api_key = os.getenv("XUNFEI_API_KEY")
+        if not self.api_secret:
+            self.api_secret = os.getenv("XUNFEI_API_SECRET")
 
+        if not self.app_id or not self.api_key or not self.api_secret:
+            raise LLMError(
+                "XUNFEI_APP_ID, XUNFEI_API_KEY, and XUNFEI_API_SECRET must be set "
+                "(see system/etc/aila/env.d/xunfei.conf)."
+            )
+
+        parsed = urlparse(self.api_url)
+        self._host = parsed.netloc
+        self._path = parsed.path or "/v2/chat/completions"
         self._session = requests.Session()
 
-    def _headers(self) -> Dict[str, str]:
-        headers: Dict[str, str] = {
-            "Authorization": f"Bearer {self.api_key}",
+    def _build_headers(self) -> Dict[str, str]:
+        date_header = formatdate(time.time(), usegmt=True)
+        signature_origin = f"host: {self._host}\ndate: {date_header}\nPOST {self._path} HTTP/1.1"
+        signature_sha = hmac.new(
+            self.api_secret.encode("utf-8"),
+            signature_origin.encode("utf-8"),
+            hashlib.sha256,
+        ).digest()
+        signature = base64.b64encode(signature_sha).decode()
+        authorization_origin = (
+            f'api_key="{self.api_key}", algorithm="hmac-sha256", headers="host date request-line", '
+            f'signature="{signature}"'
+        )
+        authorization = base64.b64encode(authorization_origin.encode("utf-8")).decode()
+
+        return {
+            "Authorization": authorization,
             "Content-Type": "application/json",
+            "Host": self._host,
+            "Date": date_header,
         }
-        if self.referer:
-            headers["HTTP-Referer"] = self.referer
-        if self.app_title:
-            headers["X-Title"] = self.app_title
-        return headers
 
     def complete(self, system_prompt: str, prompt: str) -> str:
-        url = f"{self.base_url.rstrip('/')}/chat/completions"
+        messages = _build_messages(system_prompt, prompt)
         payload = {
-            "model": self.model,
-            "messages": _build_messages(system_prompt, prompt),
+            "app_id": self.app_id,
+            "messages": messages,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
         }
 
-        response = self._session.post(url, headers=self._headers(), json=payload, timeout=self.timeout)
+        response = self._session.post(
+            self.api_url,
+            headers=self._build_headers(),
+            json=payload,
+            timeout=self.timeout,
+        )
         try:
             response.raise_for_status()
-        except requests.HTTPError as exc:  # pragma: no cover - error path
-            raise LLMError(f"OpenRouter request failed: {exc} - {response.text}") from exc
+        except requests.HTTPError as exc:  # pragma: no cover - network failure
+            raise LLMError(f"Spark request failed: {exc} - {response.text}") from exc
 
         data = response.json()
         try:
             return data["choices"][0]["message"]["content"]
-        except (KeyError, IndexError, TypeError) as exc:  # pragma: no cover - schema error
-            raise LLMError(f"Unexpected OpenRouter response shape: {data}") from exc
+        except (KeyError, IndexError, TypeError) as exc:
+            raise LLMError(f"Unexpected Spark response shape: {data}") from exc

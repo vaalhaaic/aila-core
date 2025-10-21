@@ -1,5 +1,3 @@
-endpoints:
-  whisper: "http://localhost:9081/health"
-  coqui: "http://localhost:9082/health"
+endpoints: {}
 metrics_port: 9091
 scrape_interval: 15

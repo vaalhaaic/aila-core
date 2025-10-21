@@ -30,7 +30,6 @@
 ```bash
 Aila/
 ├── system/              # 🧱 身体层：NixOS 系统配置与宿主模块
-├── services/            # ⚙️ 器官层：独立服务（Whisper、Ollama、Coqui 等）
 ├── aila/                # 🌌 精神层：Aila 的意识与行为逻辑
 ├── scripts/             # 🧠 神经层：自动化脚本与控制逻辑
 ├── deploy/              # 🪶 宇宙层：部署映射与同步规则
@@ -54,6 +53,7 @@ Aila/
 | `scripts/`  | 运维脚本与控制逻辑 | `/usr/local/bin/`                              | 含部署、同步、模型拉取、容器同步等脚本                |
 | `deploy/`   | 部署映射与规则声明 | （控制层）                                          | 不直接部署文件，只定义“仓库 → 宿主路径”映射规则并提供 `deploy.py` 调度器 |
 | `docs/`     | 结构理念与操作指南 | （认知层）                                          | 汇总结构哲学、开发日志与脚本手册，辅助团队协作             |
+> 语音合成改为直接调用腾讯云 TTS API，密钥模板位于 system/etc/aila/env.d/tencent.conf，部署后再填入真实凭证。
 
 ✅ `deploy/` 与 `system/`、`services/`、`scripts/` 等目录**同级存在**，
 它不包含可执行脚本，而是部署时使用的 **配置声明层**。
@@ -113,7 +113,6 @@ Aila/
 | 层级               | 象征   | 职责           | 主要技术                 | 对应目录        |
 | ---------------- | ---- | ------------ | -------------------- | ----------- |
 | 🧱 宿主层（Host）     | 身体   | 系统配置、网络、权限   | NixOS、systemd        | `system/`   |
-| ⚙️ 服务层（Organs）   | 器官   | 语音识别、语言模型、监控 | Whisper、Ollama、Coqui | `services/` |
 | 🌌 精神层（Core）     | 意识   | 情绪、反思、梦境、自愈  | Python、日志分析          | `aila/`     |
 | 🧠 神经层（Scripts）  | 神经   | 部署、同步、更新、快照  | Bash、rsync、Git       | `scripts/`  |
 | 🪶 部署声明层（Deploy） | 宇宙规则 | 定义映射关系与同步规则  | YAML、rsync           | `deploy/`   |
@@ -170,8 +169,6 @@ services/
 ├─ whisper/
 │  ├─ systemd/whisper.service
 │  └─ config/config.yaml
-├─ coqui/
-│  ├─ systemd/coqui.service
 │  └─ voices/
 └─ monitor/
    ├─ systemd/monitor.service
@@ -313,7 +310,6 @@ sudo nixos-rebuild --rollback
 
 | 阶段   | 目标     | 核心内容                   |
 | ---- | ------ | ---------------------- |
-| v0.2 | 具身音频循环 | Whisper + Coqui 语音交互闭环 |
 | v0.3 | 精神层容器化 | Core 容器运行，自省分离         |
 | v0.4 | 日志反思系统 | 自动生成自我叙事               |
 | v1.0 | 数字孪生宿主 | VSCode = 宿主完全镜像，双向同步   |
@@ -363,7 +359,6 @@ mappings:
   # ============================================================
   # ⚙️ 服务层（Organs）
   # ------------------------------------------------------------
-  # 各功能服务：Whisper、Ollama、Coqui、Monitor
   # ============================================================
   - name: ollama-service
     src: services/ollama/systemd/
@@ -402,38 +397,20 @@ mappings:
     src: services/whisper/main/
     dst: /opt/aila/whisper/
     sudo: true
-    description: "Whisper 主逻辑程序（唤醒检测 + 调用 Ollama + 调用 Coqui 播放）"
 
 
-  - name: coqui-service
-    src: services/coqui/systemd/
     dst: /etc/systemd/system/
     sudo: true
-    description: "Coqui 语音合成服务守护进程"
 
-  - name: coqui-config
-    src: services/coqui/config/
-    dst: /etc/coqui/
     sudo: true
-    description: "Coqui 配置文件（模型路径 / 音量 / 语言）"
 
-  - name: coqui-main
-    src: services/coqui/main/
-    dst: /opt/aila/coqui/
     sudo: true
-    description: "Coqui 主程序（TTS 接口与播放逻辑）"
 
-  - name: coqui-scripts
-    src: services/coqui/scripts/
     dst: /usr/local/bin/
     sudo: true
-    description: "Coqui 辅助脚本（命令行播放文本）"
     
-  - name: coqui-install-script
-    src: services/coqui/scripts/
     dst: /usr/local/bin/
     sudo: true
-    description: "Coqui 模型自动下载与测试脚本（install_coqui_model.sh）"
 
 
   - name: monitor-service

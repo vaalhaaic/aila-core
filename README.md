@@ -36,9 +36,7 @@ aila-core/
 │   ├── install_dependencies.sh
 │   ├── deploy_to_host.sh
 │   └── run_aila.sh
-├── services/      # 服务定义（Whisper、Coqui、Monitor 等）
-│   ├── whisper/       # 语音识别服务
-│   ├── coqui/         # 语音合成服务
+├── services/      # 本地辅助服务定义（如 monitor），语音能力改用云端 API
 │   └── monitor/       # 监控服务
 └── system/        # Ubuntu 主机级配置片段
     └── etc/aila/env.d/  # 环境变量配置
@@ -115,8 +113,9 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 # 安装 Python 依赖（假设有 requirements.txt）
 pip install -r requirements.txt
 
-# 检查环境片段（OPENROUTER_API_KEY 仍为占位符，部署后再填写）
-cat system/etc/aila/env.d/openrouter.conf
+# 检查环境片段（密钥保持占位符，部署后再填写）
+cat system/etc/aila/env.d/xunfei.conf
+cat system/etc/aila/env.d/tencent.conf
 ```
 
 ## 📤 Git 工作流程
@@ -177,44 +176,155 @@ source venv/bin/activate            # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. 配置远程 LLM（OpenRouter）
+### 2. 配置云端密钥（OpenRouter & 腾讯 TTS）
 
-1. 机密信息单独管理：部署完成后，在目标服务器编辑 `/etc/aila/env.d/openrouter.conf`，将仓库中的占位符 `OPENROUTER_API_KEY=changeme` 修改为真实密钥。该文件不应提交到版本库。
-2. 本地调试时，可临时导出密钥：
+1. **部署完成后再写入真实密钥：**
+   - `/etc/aila/env.d/xunfei.conf` → 设置 `XUNFEI_APP_ID` / `XUNFEI_API_KEY` / `XUNFEI_API_SECRET`
+   - `/etc/aila/env.d/tencent.conf` → 设置 `TENCENT_SECRET_ID` / `TENCENT_SECRET_KEY`
+
+   以上文件已在仓库中提供模板（默认值为 `changeme`），请勿将真实密钥提交到版本库。
+
+2. **本地调试临时导出环境变量：**
 
    ```powershell
    # Windows PowerShell
-   setx OPENROUTER_API_KEY "你的API密钥"
+   setx XUNFEI_APP_ID "你的讯飞AppID"
+   setx XUNFEI_API_KEY "你的讯飞APIKey"
+   setx XUNFEI_API_SECRET "你的讯飞APISecret"
+   setx TENCENT_SECRET_ID "你的腾讯SecretId"
+   setx TENCENT_SECRET_KEY "你的腾讯SecretKey"
    ```
 
    ```bash
    # Linux / macOS
-   export OPENROUTER_API_KEY="你的API密钥"
+   export XUNFEI_APP_ID="你的讯飞AppID"
+   export XUNFEI_API_KEY="你的讯飞APIKey"
+   export XUNFEI_API_SECRET="你的讯飞APISecret"
+   export TENCENT_SECRET_ID="你的腾讯SecretId"
+   export TENCENT_SECRET_KEY="你的腾讯SecretKey"
    ```
 
-3. 可选：按照 OpenRouter 推荐添加归因信息或切换模型：
+3. **可选参数：**
 
    ```bash
-   export OPENROUTER_REFERER="https://your-app.example"
-   export OPENROUTER_APP_TITLE="Aila-Client"
-   export OPENROUTER_MODEL="tngtech/deepseek-r1t2-chimera:free"
-   export OPENROUTER_BASE_URL="https://openrouter.ai/api/v1"
+   # 讯飞星火模型参数
+   export XUNFEI_TEMPERATURE="0.7"
+   export XUNFEI_MAX_TOKENS="2048"
+
+   # 腾讯 TTS 语音/语速/格式覆写
+   export TENCENT_TTS_REGION="ap-shanghai"
+   export TENCENT_TTS_VOICE_TYPE="101001"
+   export TENCENT_TTS_SPEED="0"
+   export TENCENT_TTS_VOLUME="0"
+   export TENCENT_TTS_FORMAT="wav"
+   export TENCENT_TTS_SAMPLE_RATE="16000"
    ```
 
-### 3. 部署语音服务（Whisper.cpp + Coqui TTS）
+### 3. 云端语音能力调用示例
 
-```bash
-sudo bash scripts/deploy_tts_stt.sh
+#### 3.1 语音合成（腾讯云爱小悠 602003）
+
+```python
+from tencentcloud.common import credential
+from tencentcloud.tts.v20190823 import tts_client, models
+
+
+def text_to_speech(text: str) -> bytes:
+    cred = credential.Credential("你的SECRET_ID", "你的SECRET_KEY")
+    client = tts_client.TtsClient(cred, "ap-beijing")
+
+    req = models.TextToVoiceRequest()
+    req.Text = text
+    req.VoiceType = 602003  # 爱小悠
+    req.Speed = 0
+    req.Volume = 0
+    req.Format = "wav"
+
+    resp = client.TextToVoice(req)
+    return resp.Audio
+
+
+if __name__ == "__main__":
+    binary = text_to_speech("你好，我是爱小悠，很高兴为你服务～")
+    with open("ai_xiaoyou_test.wav", "wb") as fh:
+        fh.write(binary)
 ```
 
-- Whisper.cpp 默认拉取 `small` 模型，并启用 CUDA（需已安装 NVIDIA 驱动与 CUDA 12.x）。
-- Coqui TTS 会在 `/opt/aila/coqui` 创建虚拟环境并预热 `tts_models/zh-CN/baker/tacotron2-DDC-GST` 中文女声，可通过 `COQUI_MODEL_NAME` 等环境变量覆盖。
-- 脚本会自动生成 `whisper.service` 与 `coqui.service` systemd 单元，并设置为开机自启。
+#### 3.2 语音转文字（腾讯云 16k_zh）
+
+```python
+from base64 import b64encode
+from pathlib import Path
+from tencentcloud.common import credential
+from tencentcloud.asr.v20190614 import asr_client, models
+
+
+def speech_to_text(path: str) -> str:
+    cred = credential.Credential("你的SECRET_ID", "你的SECRET_KEY")
+    client = asr_client.AsrClient(cred, "ap-beijing")
+
+    req = models.SentenceRecognitionRequest()
+    req.EngineModelType = "16k_zh"
+    req.AudioFormat = "wav"
+    data = Path(path).read_bytes()
+    req.Data = b64encode(data).decode()
+    req.DataLen = len(data)
+
+    resp = client.SentenceRecognition(req)
+    return resp.Result
+```
+
+#### 3.3 星火大模型（Python 调用）
+
+```python
+import base64
+import hashlib
+import hmac
+import time
+import requests
+from email.utils import formatdate
+from urllib.parse import urlparse
+
+
+def call_xinghuo(prompt: str) -> str:
+    app_id = "你的APPID"
+    api_key = "你的APIKey"
+    api_secret = "你的APISecret"
+    api_url = "https://spark-api-open.xf-yun.com/v2/chat/completions"
+
+    parsed = urlparse(api_url)
+    host = parsed.netloc
+    path = parsed.path
+    date_header = formatdate(time.time(), usegmt=True)
+    signature_origin = f"host: {host}\ndate: {date_header}\nPOST {path} HTTP/1.1"
+    signature_sha = hmac.new(api_secret.encode(), signature_origin.encode(), hashlib.sha256).digest()
+    signature = base64.b64encode(signature_sha).decode()
+    authorization_origin = (
+        f'api_key="{api_key}", algorithm="hmac-sha256", headers="host date request-line", signature="{signature}"'
+    )
+    authorization = base64.b64encode(authorization_origin.encode()).decode()
+
+    headers = {
+        "Authorization": authorization,
+        "Content-Type": "application/json",
+        "Host": host,
+        "Date": date_header,
+    }
+    payload = {
+        "app_id": app_id,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.7,
+        "max_tokens": 2048,
+    }
+    resp = requests.post(api_url, headers=headers, json=payload, timeout=60)
+    data = resp.json()
+    return data["choices"][0]["message"]["content"]
+```
 
 ### 4. 本地开发与测试
 
 ```bash
-# 确保 OPENROUTER_API_KEY 已在当前会话可见
+# 确保 XUNFEI_APP_ID / XUNFEI_API_KEY / XUNFEI_API_SECRET / TENCENT_SECRET_ID / TENCENT_SECRET_KEY 已在当前会话可见
 source venv/bin/activate
 
 # 运行编排器（文本输入示例）
@@ -237,14 +347,17 @@ python deploy/deploy.py --dry-run
 ### 6. 部署到 Ubuntu 目标主机
 
 ```bash
-# 部署到指定主机
+# 同步代码与配置
 bash scripts/deploy_to_host.sh production-server
 
-# 在目标主机检查服务状态
+# 在目标主机验证环境变量（填入后）
 ssh user@production-server
-sudo systemctl status whisper.service coqui.service
-sudo journalctl -u whisper.service -f
-sudo journalctl -u coqui.service -f
+sudo cat /etc/aila/env.d/tencent.conf
+sudo cat /etc/aila/env.d/xunfei.conf
+
+# 使用虚拟环境运行编排器
+source /opt/aila/core/venv/bin/activate  # 按需调整路径
+python -m aila.runtime.orchestrator --text "系统自检完成"
 ```
 
 ### 7. 持续集成与回滚
@@ -264,7 +377,7 @@ bash scripts/deploy_to_host.sh production-server
 | 目录 | 说明 |
 |------|------|
 | `aila/` | Python 核心运行时，包含感知、认知、规划、记忆等模块 |
-| `services/` | 独立服务封装（Whisper、Ollama、Piper 等），包含 systemd 单元文件 |
+| `services/` | 独立服务封装（Monitor 等），包含 systemd 单元文件 |
 | `scripts/` | DevOps 自动化脚本：安装、部署、诊断 |
 | `deploy/` | 部署工具，基于 rsync 同步代码与配置 |
 | `docs/` | 项目文档：架构设计、API 文档、运维手册 |

@@ -13,12 +13,8 @@
 1. Run `scripts/install_dependencies.sh` to install APT packages and create the `aila` system group.
 2. Execute `scripts/deploy_to_host.sh <hostname>` to push configuration and services.
 3. Rebuild the Python environment using `scripts/run_aila.sh --setup`.
-4. Enable services on the target:
-   ```bash
-   sudo systemctl daemon-reload
-   sudo systemctl enable --now whisper.service coqui.service aila-monitor.service
-   ```
-5. Inspect logs with `journalctl -u <service> -f`.
+4. Update `/etc/aila/env.d/tencent.conf` and `/etc/aila/env.d/xunfei.conf` with production secrets.
+5. Launch the orchestrator inside the virtualenv and confirm Tencent/iFLYTEK connectivity.
 
 ## Maintenance Tasks
 

@@ -1,7 +1,0 @@
-model_name: "tts_models/zh-CN/baker/tacotron2-DDC-GST"
-listen_host: "0.0.0.0"
-listen_port: 9082
-use_cuda: true
-speaker_id: 0
-sample_rate: 22050
-warmup_text: "你好，欢迎使用 Aila 的语音服务。"

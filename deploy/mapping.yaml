@@ -32,50 +32,6 @@ mappings:
     sudo: true
     description: "Administration scripts for install, deploy, and runtime"
 
-  # Services: Whisper
-  - name: whisper-systemd
-    src: services/whisper/systemd/
-    dst: /etc/systemd/system/
-    sudo: true
-    description: "Whisper ASR service unit"
-
-  - name: whisper-config
-    src: services/whisper/config/
-    dst: /etc/aila-whisper/
-    sudo: true
-    description: "Whisper inference settings"
-
-  - name: whisper-main
-    src: services/whisper/main/
-    dst: /opt/aila/whisper/
-    sudo: true
-    description: "Whisper runtime scripts"
-
-  - name: whisper-scripts
-    src: services/whisper/scripts/
-    dst: /opt/aila/whisper/bin/
-    sudo: true
-    description: "Whisper utility tools"
-
-  # Services: Coqui TTS
-  - name: coqui-systemd
-    src: services/coqui/systemd/
-    dst: /etc/systemd/system/
-    sudo: true
-    description: "Coqui TTS service unit"
-
-  - name: coqui-config
-    src: services/coqui/config/
-    dst: /etc/aila-coqui/
-    sudo: true
-    description: "Coqui TTS configuration"
-
-  - name: coqui-main
-    src: services/coqui/main/
-    dst: /opt/aila/coqui/
-    sudo: true
-    description: "Coqui TTS runtime scripts"
-
   # Services: Monitor
   - name: monitor-systemd
     src: services/monitor/systemd/

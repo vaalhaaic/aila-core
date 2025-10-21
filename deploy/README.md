@@ -13,7 +13,7 @@ The deploy controller keeps a single source of truth for synchronizing this repo
 ```
 python deploy.py --host robot01
 python deploy.py --host robot01 --apply
-python deploy.py --host robot01 --apply --filter services=whisper,coqui
+python deploy.py --host robot01 --apply --filter services=monitor
 ```
 
 `deploy.py` reads SSH connection details from the environment:

@@ -5,65 +5,23 @@ from __future__ import annotations
 import argparse
 import logging
 import os
-import tempfile
 from dataclasses import dataclass
-from pathlib import Path
-
-import requests
+from typing import Any
 
 from ..core import MindPipeline, PerceptionRouter, Planner
+from ..interfaces.asr import TencentASRClient
 from ..interfaces.llm import LLMClient
-from ..interfaces.speech import CoquiClient, SpeechInterface
+from ..interfaces.speech import SpeechInterface, TencentTTSClient
 
 
 logger = logging.getLogger("aila.orchestrator")
 
 
-@dataclass
-class WhisperAdapter:
-    endpoint: str
-    timeout: int = 120
-
-    def transcribe(self, audio_path: str) -> str:
-        url = f"{self.endpoint.rstrip('/')}/inference"
-        audio_file = Path(audio_path)
-        if not audio_file.exists():
-            raise FileNotFoundError(f"Audio file not found: {audio_file}")
-
-        logger.info("Transcribing %s via %s", audio_file, url)
-        with audio_file.open("rb") as handle:
-            files = {"file": (audio_file.name, handle, "audio/wav")}
-            data = {"response_format": "json"}
-            response = requests.post(url, data=data, files=files, timeout=self.timeout)
-        response.raise_for_status()
-
-        try:
-            payload = response.json()
-        except ValueError:
-            return response.text.strip()
-
-        if isinstance(payload, dict) and "text" in payload:
-            return payload["text"]
-        return str(payload)
-
-
-@dataclass
-class CoquiAdapter(CoquiClient):
-    endpoint: str
-    timeout: int = 60
-
-    def speak(self, text: str) -> str:
-        url = f"{self.endpoint.rstrip('/')}/synthesize"
-        logger.info("Synthesizing speech via %s", url)
-        response = requests.post(url, json={"text": text}, timeout=self.timeout)
-        response.raise_for_status()
-
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as wav_file:
-            wav_file.write(response.content)
-            saved_path = Path(wav_file.name)
-
-        logger.debug("Audio synthesized to %s", saved_path)
-        return str(saved_path)
+def _parse_int(value: Any, *, name: str) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:  # pragma: no cover - defensive guard
+        raise ValueError(f"{name} must be an integer, got {value!r}") from exc
 
 
 @dataclass
@@ -79,36 +37,107 @@ class Orchestrator:
         return self.mind.handle_text(text)
 
 
-def build_pipeline(whisper_url: str, llm_base_url: str, llm_model: str, coqui_url: str) -> MindPipeline:
-    whisper = WhisperAdapter(endpoint=whisper_url)
-    perception = PerceptionRouter(whisper=whisper)
-    llm = LLMClient(base_url=llm_base_url, model=llm_model)
+def build_pipeline(tts_client: TencentTTSClient, asr_client: TencentASRClient) -> MindPipeline:
+    perception = PerceptionRouter(recognizer=asr_client)
+    llm = LLMClient()
     planner = Planner(llm=llm)
-    coqui = CoquiAdapter(endpoint=coqui_url)
-    speech = SpeechInterface(tts=coqui)
+    speech = SpeechInterface(tts=tts_client)
     return MindPipeline(perception=perception, planner=planner, speech=speech)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--whisper", default=os.getenv("AILA_WHISPER_URL", "http://localhost:9081"))
-    parser.add_argument(
-        "--llm-base-url",
-        default=os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
-    )
-    parser.add_argument(
-        "--llm-model",
-        default=os.getenv("OPENROUTER_MODEL", "tngtech/deepseek-r1t2-chimera:free"),
-    )
-    parser.add_argument("--coqui", default=os.getenv("AILA_COQUI_URL", "http://localhost:9082"))
-    parser.add_argument("--audio")
-    parser.add_argument("--text")
+    parser.add_argument("--audio", help="Path to WAV/PCM file for recognition")
+    parser.add_argument("--text", help="Text prompt bypassing ASR")
     parser.add_argument("--log-level", default="INFO")
+    parser.add_argument(
+        "--tts-region",
+        default=os.getenv("TENCENT_TTS_REGION", "ap-beijing"),
+        help="Tencent Cloud region for TTS",
+    )
+    parser.add_argument(
+        "--tts-voice-type",
+        default=os.getenv("TENCENT_TTS_VOICE_TYPE", "602003"),
+        help="Tencent Cloud voice type (default 爱小悠 602003)",
+    )
+    parser.add_argument(
+        "--tts-speed",
+        default=os.getenv("TENCENT_TTS_SPEED", "0"),
+        help="Speech speed [-2,2]",
+    )
+    parser.add_argument(
+        "--tts-volume",
+        default=os.getenv("TENCENT_TTS_VOLUME", "0"),
+        help="Speech volume [-2,2]",
+    )
+    parser.add_argument(
+        "--tts-format",
+        default=os.getenv("TENCENT_TTS_FORMAT", "wav"),
+        help="Output audio format (wav/mp3/pcm)",
+    )
+    parser.add_argument(
+        "--tts-sample-rate",
+        default=os.getenv("TENCENT_TTS_SAMPLE_RATE", "16000"),
+        help="Sample rate in Hz",
+    )
+    parser.add_argument(
+        "--asr-region",
+        default=os.getenv("TENCENT_ASR_REGION", "ap-beijing"),
+        help="Tencent Cloud region for ASR",
+    )
+    parser.add_argument(
+        "--asr-engine",
+        default=os.getenv("TENCENT_ASR_ENGINE", "16k_zh"),
+        help="Tencent ASR engine model (e.g. 16k_zh)",
+    )
+    parser.add_argument(
+        "--asr-format",
+        default=os.getenv("TENCENT_ASR_FORMAT", "wav"),
+        help="Input audio format (wav/mp3/silk etc.)",
+    )
+    parser.add_argument(
+        "--asr-punctuation",
+        default=os.getenv("TENCENT_ASR_ENABLE_PUNCTUATION", "1"),
+        help="Enable punctuation (1 or 0)",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=args.log_level.upper())
 
-    mind = build_pipeline(args.whisper, args.llm_base_url, args.llm_model, args.coqui)
+    secret_id = os.getenv("TENCENT_SECRET_ID")
+    secret_key = os.getenv("TENCENT_SECRET_KEY")
+    if not secret_id or not secret_key:
+        raise RuntimeError(
+            "TENCENT_SECRET_ID and TENCENT_SECRET_KEY must be set (see system/etc/aila/env.d/tencent.conf)."
+        )
+
+    voice_type = _parse_int(args.tts_voice_type, name="tts_voice_type")
+    speed = _parse_int(args.tts_speed, name="tts_speed")
+    volume = _parse_int(args.tts_volume, name="tts_volume")
+    sample_rate = _parse_int(args.tts_sample_rate, name="tts_sample_rate")
+    enable_punctuation = args.asr_punctuation not in {"0", "false", "False"}
+
+    tts_client = TencentTTSClient(
+        secret_id=secret_id,
+        secret_key=secret_key,
+        region=args.tts_region,
+        voice_type=voice_type,
+        speed=speed,
+        volume=volume,
+        audio_format=args.tts_format,
+        sample_rate=sample_rate,
+    )
+
+    asr_client = TencentASRClient(
+        secret_id=secret_id,
+        secret_key=secret_key,
+        region=args.asr_region,
+        engine_model=args.asr_engine,
+        audio_format=args.asr_format,
+        enable_punctuation=enable_punctuation,
+    )
+
+    mind = build_pipeline(tts_client=tts_client, asr_client=asr_client)
     orchestrator = Orchestrator(mind=mind)
 
     if args.audio:
